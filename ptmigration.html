@@ -1,0 +1,601 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <title>Colorado Migration</title>
+	
+        <script src="http://dola.colorado.gov/gis-cms/sites/default/files/html/js/d3.v3.min.js"></script>
+		<script src="topojson.v1.min.js"></script>
+
+    <style type="text/css">
+	.land {
+  fill: none;
+    stroke-width: 1px;
+    stroke: black;
+}
+
+.county-boundary {
+  fill: none;
+  stroke: grey;
+  stroke-width: .5px;
+}
+
+.state-boundary {
+  fill: none;
+  stroke: black;
+}
+
+
+
+	#c2name {
+	z-index: 5;
+    position: absolute;
+	width: 300px;
+	height: 20px;
+	top: 585px;
+	left:35px;
+    border: 1px solid #B3C0CC;
+    background-color: #e1e1f6;
+    padding: 1px;
+	text-align:center
+}
+
+		#closebtn{
+		position: absolute;
+		top:10px;
+		right:10px;
+		}
+
+#btninfo{
+position: absolute;
+top: 560px;
+left: 35px;
+}
+
+.button {
+    border: 1px solid #B3C0CC;
+    background-color: #E6F3FF;
+	text-align:center;
+	color: black;
+	height: 20px;
+	width: 80px;
+	    border-radius: 5px;
+		cursor: pointer;
+}
+
+		#advancedbox{
+		position:absolute;
+		top:200px;
+		left:220px;
+		width: 360px;
+		border:2px solid rgb(68,121,170);
+        background-color: #F7F9FE;
+		padding: 10px;
+        z-index: 4000;
+		}
+
+
+			#title{
+color: rgb(68,121,170);
+font-family: Copse, Georgia, serif;
+font-size: 32px;
+font-style: normal;
+font-variant: normal;
+font-weight: normal;
+letter-spacing: normal;
+outline-color: rgb(143, 2, 6);
+outline-style: none;
+outline-width: 0px;
+text-decoration: none;
+text-shadow: rgb(252, 249, 238) 0px 1px 0px, rgba(0, 0, 0, 0.14902) 0px 2px 0px;
+text-align:center;
+width: 850px;
+height: 45px;
+margin-left: 10px;
+padding-top: 5px;
+}
+			#subtitle{
+color: rgb(32,60,85);
+font-family: Copse, Georgia, serif;
+outline-color: rgb(143, 2, 6);
+outline-style: none;
+outline-width: 0px;
+text-decoration: none;
+text-shadow: rgb(252, 249, 238) 0px 1px 0px, rgba(0, 0, 0, 0.14902) 0px 2px 0px;
+text-align: center;
+font-size: 15px;
+}	
+
+.tooltip{
+border: 1px solid #ddd;
+  -moz-box-shadow: 4px 4px 8px rgba(0,0,0,.5);
+  -webkit-box-shadow: 4px 4px 8px rgba(0,0,0,.5);
+  box-shadow: 4px 4px 8px rgba(0,0,0,.5);
+  padding: 20px;
+    border-radius: 10px;
+}
+	
+svg {
+border: 1px solid #ddd;
+  -moz-box-shadow: 4px 4px 8px rgba(0,0,0,.5);
+  -webkit-box-shadow: 4px 4px 8px rgba(0,0,0,.5);
+  box-shadow: 4px 4px 8px rgba(0,0,0,.5);
+  margin: 10px;
+  padding: 20px;
+    border-radius: 10px;
+	width: 850px;
+	height: 500px;
+}
+
+body{
+
+font-family: Copse, Georgia, serif;
+}
+
+
+#btnresume{
+position: absolute;
+top: 585px;
+left: 800px;
+
+}
+
+#btnpause{
+position: absolute;
+top: 585px;
+left: 800px;
+
+}
+
+#btnreplay{
+position: absolute;
+top: 585px;
+left: 800px;
+
+}
+
+#GEONAME {
+  fill: white;
+  stroke: black;
+  stroke-width: 1px;
+  }
+
+
+
+#timediv{
+
+position: absolute;
+top: 590px;
+color: grey;
+background-color: white;
+left: 35px;
+width: 160px;
+padding: 4px;
+}
+
+#timediv span{
+width: 160px;
+opacity: 1;
+background-color: white;
+
+}
+
+    </style>
+  </head>
+<body>
+<div id="title" class="tooltip">Colorado Inter-State Migration<div id="subtitle" >American Community Survey 5Y 2006-2010</div></div>
+
+
+        <script src="probability2.js"></script>
+        <script src="matrix3.js"></script>	
+
+		<script>
+	
+var dataset=[]; //array of objects
+var hour=0;
+var r; //setInterval
+
+var svgscale=1070;
+
+var blues;
+var reds;
+	
+	var width = 950;
+    var height = 500;
+
+var newid=0;  //generate unique IDs for all objects
+	
+
+
+var key = function(d){return d.ID;}
+	
+	
+
+
+//using mercator purely for speed
+//var projection = d3.geo.mercator()
+//    .scale((width) / 1.2)
+//    .translate([width+800, height+320])
+//    .precision(0);
+
+
+var projection = d3.geo.albers()
+	.translate([width-525, height-245]); //d3.geo.albersUsa();
+	
+var path = d3.geo.path()
+	.projection(projection);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)    
+	.call(d3.behavior.zoom()
+      .translate(projection.translate())
+      .scale(projection.scale())
+      .on("zoom", redraw));
+
+
+var g = svg.append("g")
+var s = svg.append("g");
+var t = svg.append("g");
+var l = svg.append("g");
+
+
+	
+d3.json("us.json", function(error, us) {
+  g.insert("path", ".graticule")
+      .datum(topojson.feature(us, us.objects.land))
+      .attr("class", "land")
+      .attr("d", path);
+	  //.on("mouseover", countyover);
+
+  s.insert("path", ".graticule")
+      .datum(topojson.mesh(us, us.objects.counties, function(a, b) { return a !== b && !(a.id / 1000 ^ b.id / 1000); }))
+      .attr("class", "county-boundary")
+      .attr("d", path);
+
+  t.insert("path", ".graticule")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "state-boundary")
+      .attr("d", path);
+	  
+	migration();
+	  
+});	
+	
+	
+
+	
+function migration(){	
+
+	
+	blues = d3.scale.linear()
+	.domain([1, 15, 30, 45, 60, 75, 90, 105, 120])
+	.range(['#bed2f7', '#a0bef4', '#82a9f0', '#6495ed', '#4580e9', '#276be5', '#185bd3', '#154eb5', '#114196'])
+	.clamp(true);
+	
+	reds = d3.scale.linear()
+	.domain([1, 15, 30, 45, 60, 75, 90, 105, 120])
+	.range(['#ffc68e', '#ffb770', '#ffa851', '#ff9933', '#ff8914', '#f47a00', '#d66b00', '#b75b00', '#994c00'])
+	.clamp(true);
+	
+	r=setInterval(function(){createnewobjects()},300); //overall speed of animation
+	
+}
+
+
+function RandomInt(low, high) 
+	{ 
+    // Given   : low <= high 
+	// Returns : a random integer in the range [low, high] 
+	return Math.floor(Math.random()*(high-low+1)) + low; 
+	}  
+
+
+function countyover(d) {
+
+var curcode=d.properties.NAME;
+document.getElementById('c2name').innerHTML=d.properties.NAME+ " County, " + statelookup(d.properties.STATE);
+}
+	
+	
+function statelookup(state){
+
+var statetext="";
+
+if(state==='01'){statetext='Alabama';};
+if(state==='02'){statetext='Alaska';};
+if(state==='04'){statetext='Arizona';};
+if(state==='05'){statetext='Arkansas';};
+if(state==='06'){statetext='California';};
+if(state==='08'){statetext='Colorado';};
+if(state==='09'){statetext='Connecticut';};
+if(state==='10'){statetext='Delaware';};
+if(state==='11'){statetext='District of Columbia';};
+if(state==='12'){statetext='Florida';};
+if(state==='13'){statetext='Georgia';};
+if(state==='15'){statetext='Hawaii';};
+if(state==='16'){statetext='Idaho';};
+if(state==='17'){statetext='Illinois';};
+if(state==='18'){statetext='Indiana';};
+if(state==='19'){statetext='Iowa';};
+if(state==='20'){statetext='Kansas';};
+if(state==='21'){statetext='Kentucky';};
+if(state==='22'){statetext='Louisiana';};
+if(state==='23'){statetext='Maine';};
+if(state==='24'){statetext='Maryland';};
+if(state==='25'){statetext='Massachusetts';};
+if(state==='26'){statetext='Michigan';};
+if(state==='27'){statetext='Minnesota';};
+if(state==='28'){statetext='Mississippi';};
+if(state==='29'){statetext='Missouri';};
+if(state==='30'){statetext='Montana';};
+if(state==='31'){statetext='Nebraska';};
+if(state==='32'){statetext='Nevada';};
+if(state==='33'){statetext='New Hampshire';};
+if(state==='34'){statetext='New Jersey';};
+if(state==='35'){statetext='New Mexico';};
+if(state==='36'){statetext='New York';};
+if(state==='37'){statetext='North Carolina';};
+if(state==='38'){statetext='North Dakota';};
+if(state==='39'){statetext='Ohio';};
+if(state==='40'){statetext='Oklahoma';};
+if(state==='41'){statetext='Oregon';};
+if(state==='42'){statetext='Pennsylvania';};
+if(state==='44'){statetext='Rhode Island';};
+if(state==='45'){statetext='South Carolina';};
+if(state==='46'){statetext='South Dakota';};
+if(state==='47'){statetext='Tennessee';};
+if(state==='48'){statetext='Texas';};
+if(state==='49'){statetext='Utah';};
+if(state==='50'){statetext='Vermont';};
+if(state==='51'){statetext='Virginia';};
+if(state==='53'){statetext='Washington';};
+if(state==='54'){statetext='West Virginia';};
+if(state==='55'){statetext='Wisconsin';};
+if(state==='56'){statetext='Wyoming';};
+
+return statetext;
+}
+	
+	
+function createnewobjects(){
+	
+
+
+hour=hour+1;
+//var timechange=document.getElementById('timediv');
+document.getElementById('timediv').innerHTML='<span>Days: '+Math.floor(hour/24)+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hours: '+(hour%24) + '</span>';
+
+if(hour>(30*24)){  //quit animation after 30 days
+	r=window.clearInterval(r);
+	document.getElementById('btnresume').style.display = 'none';
+	document.getElementById('btnreplay').style.display = '';
+	document.getElementById('btnpause').style.display = 'none';
+}
+
+var indexval;
+var avar ;	
+	
+for(j=0; j<8; j++){   //40 is 1 to 1 representation, 20: each dot represents 2 people, 8: each dot represents 5 people
+
+avar = RandomInt(0,348656); //magic number 348656 is sum of all inter-state migration for year (inflow and outflow)
+
+for(i=0; i<8215; i++){  //magic number 8215 is number of elements in matrix array use probability index to look up migration path for each point
+if(avar<probability[i]){indexval=i; break;}
+} //end of i loop
+
+
+//calculations
+diffx = matrix[indexval].CurLong - matrix[indexval].PastLong;
+diffy = matrix[indexval].CurLat - matrix[indexval].PastLat;
+totaldist = Math.sqrt(Math.pow(diffx,2) + Math.pow(diffy,2));
+totalhours = parseInt((totaldist)*2.7)+1;
+
+//increment ID variable so that there is a new unique ID with each created circle in dataset object array
+newid++;
+
+
+
+//create a new circle object
+dataset.push({
+ID:newid,
+from_x:matrix[indexval].PastLong,
+from_y:matrix[indexval].PastLat,
+CurState:ststring(matrix[indexval].CurState),
+PastState:ststring(matrix[indexval].PastState),
+PastCountyName:matrix[indexval].PastCountyName,
+CurCountyName:matrix[indexval].CurCountyName,
+diffx_perhour:(diffx/totalhours),
+diffy_perhour:(diffy/totalhours),
+totalhours: totalhours,
+currenthour: -1,
+new_x: matrix[indexval].PastLong,
+new_y: matrix[indexval].PastLat
+});
+
+	
+} //end of j for loop
+
+
+
+	//delete all objects that have reached their destination - iterate backwards to accomodate deletion of objects with splice
+	for(k=dataset.length-1; k>-1; k--){
+			dataset[k].currenthour++; //add hour to journey
+			dataset[k].new_x = dataset[k].new_x + dataset[k].diffx_perhour;  //calculate new x and new y
+			dataset[k].new_y = dataset[k].new_y + dataset[k].diffy_perhour;  //calculate new x and new y	
+			if(dataset[k].currenthour==dataset[k].totalhours){dataset.splice(k,1)};   //delete old pts
+	} //end of k for loop	
+
+	
+	//select circles
+	var circles = l.selectAll("circle")
+	.data(dataset, key);
+	
+	//create any new circles
+	circles.enter()
+	.append("circle")
+	.attr("cx",function(d){return projection([d.from_x, d.from_y])[0];})
+	.attr("cy", function(d){return projection([d.from_x, d.from_y])[1];})
+	.attr("r", 4)
+	.attr("fill",function(d){
+		if(d.CurState=='CO'){return blues(d.totalhours);}else{return reds(d.totalhours);}
+		})
+	.attr("stroke", "yellow")
+	.attr("stroke-width", 3)
+		.append("title")
+		.text(function(d){
+		return (d.PastCountyName+", "+ d.PastState + " to "+d.CurCountyName + ", " + d.CurState);
+		});
+		
+	//move all circles	
+	circles.transition()
+	.duration(300)
+	.ease("linear")
+	.attr("cx",function(d){return projection([d.new_x, d.new_y])[0];})
+	.attr("cy", function(d){return projection([d.new_x, d.new_y])[1];})
+	.attr("r", 4)
+	.attr("stroke", "lavender")
+	.attr("stroke-width", 1)
+	.style("opacity", function(d){
+		if(d.currenthour+1==d.totalhours){return 0;}
+		return 1;});
+	
+	
+	//remove any old circles
+	circles.exit()
+	.remove();
+	
+}	
+	
+
+function restart(){
+	document.getElementById('btnresume').style.display = 'none';
+	document.getElementById('btnpause').style.display = '';
+	r=setInterval(function(){createnewobjects()},300)
+}	
+	
+function pause(){
+	document.getElementById('btnresume').style.display = '';
+	document.getElementById('btnpause').style.display = 'none';
+	window.clearInterval(r);
+}
+
+function replay(){
+	document.getElementById('btnresume').style.display = 'none';
+	document.getElementById('btnreplay').style.display = 'none';
+	document.getElementById('btnpause').style.display = '';
+	dataset=[];
+	hour=0;
+	l.selectAll("circle").remove();
+	r=setInterval(function(){createnewobjects()},300)
+}
+	
+function redraw() {
+
+  if (d3.event) {
+ l.style("display", "none"); 
+  
+    projection
+        .translate(d3.event.translate)
+        .scale(d3.event.scale);
+		svgscale=d3.event.scale;
+		
+	setTimeout(function(){l.style("display", "block");}, 2000);	
+		
+  }
+  svg.selectAll("path").attr("d", path);
+  var q = projection.translate();
+  
+
+}
+
+function ststring(fips){
+var state;
+if(fips=='1'){state="AL";}
+if(fips=='2'){state="AK";}
+if(fips=='4'){state="AZ";}
+if(fips=='5'){state="AR";}
+if(fips=='6'){state="CA";}
+if(fips=='8'){state="CO";}
+if(fips=='9'){state="CT";}
+if(fips=='10'){state="DE";}
+if(fips=='11'){state="DC";}
+if(fips=='12'){state="FL";}
+if(fips=='13'){state="GA";}
+if(fips=='15'){state="HI";}
+if(fips=='16'){state="ID";}
+if(fips=='17'){state="IL";}
+if(fips=='18'){state="IN";}
+if(fips=='19'){state="IA";}
+if(fips=='20'){state="KS";}
+if(fips=='21'){state="KY";}
+if(fips=='22'){state="LA";}
+if(fips=='23'){state="ME";}
+if(fips=='24'){state="MD";}
+if(fips=='25'){state="MA";}
+if(fips=='26'){state="MI";}
+if(fips=='27'){state="MN";}
+if(fips=='28'){state="MS";}
+if(fips=='29'){state="MO";}
+if(fips=='30'){state="MT";}
+if(fips=='31'){state="NE";}
+if(fips=='32'){state="NV";}
+if(fips=='33'){state="NH";}
+if(fips=='34'){state="NJ";}
+if(fips=='35'){state="NM";}
+if(fips=='36'){state="NY";}
+if(fips=='37'){state="NC";}
+if(fips=='38'){state="ND";}
+if(fips=='39'){state="OH";}
+if(fips=='40'){state="OK";}
+if(fips=='41'){state="OR";}
+if(fips=='42'){state="PA";}
+if(fips=='44'){state="RI";}
+if(fips=='45'){state="SC";}
+if(fips=='46'){state="SD";}
+if(fips=='47'){state="TN";}
+if(fips=='48'){state="TX";}
+if(fips=='49'){state="UT";}
+if(fips=='50'){state="VT";}
+if(fips=='51'){state="VA";}
+if(fips=='53'){state="WA";}
+if(fips=='54'){state="WV";}
+if(fips=='55'){state="WI";}
+if(fips=='56'){state="WY";}
+if(fips=='72'){state="PR";}
+if(fips=='78'){state="VI";}
+
+return state;
+}
+
+function closeadvancedbox(){
+	document.getElementById('advancedbox').style.display = 'none';
+}
+
+function openadvancedbox(){
+	document.getElementById('advancedbox').style.display = '';
+}
+
+	</script>
+	<!--<div id='c2name'></div>-->
+<div id='timediv'></div>
+<div id="btnresume" class="button" onclick="restart();" style="display:none;"><span>Resume</span></div>
+<div id="btnpause"  class="button" onclick="pause();"><span>Pause</span></div>
+<div id="btnreplay"  class="button" onclick="replay();" style="display:none;"><span>Replay</span></div>
+
+<div id="btninfo"  class="button" onclick="openadvancedbox();"><span>Info</span></div>	
+
+	<div id="advancedbox" style="display: none;">
+
+		<img id="closebtn" src="http://dola.colorado.gov/gis-cms/sites/default/files/projects/acsmaps/closebtn.png" onclick="closeadvancedbox();"/>
+		<p>One Dot Represents 5 Movers</p>
+		<span style="font-size: 60%"><p>This is a simulation based upon a probability matrix, and does not reflect the movement of specific individuals.  Time elapsed is meant to represent driving time, assuming 8 hours of driving per day</p>
+		<p><b>Credits:</b> Designed by the <a href="http://www.colorado.gov/cs/Satellite/DOLA-Main/CBON/1251590805419" target="_blank">Colorado State Demography Office</a>.  <a href="http://www.colorado.gov/cs/Satellite/DOLA-Main/CBON/1251595507940" target="_blank">(GIS Homepage)</a>. Created with <a href="http://d3js.org/" target="_blank">D3.js</a>.  Best viewed on Google Chrome.</p></span>
+			
+	</div>
+	
+  </body>
+</html>
+
+
